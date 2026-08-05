@@ -2,11 +2,19 @@ import { useState } from "react";
 
 import "./App.css";
 
-import Card from "./components/Card";
+import Sidebar from "./components/Sidebar";
+import Hero from "./components/Hero";
+
 import ConnectionCard from "./components/ConnectionCard";
+import SessionCard from "./components/SessionCard";
+import ToolsCard from "./components/ToolsCard";
+import ExecuteCard from "./components/ExecuteCard";
+import ResponseCard from "./components/ResponseCard";
 
 export default function App() {
-  const [url, setUrl] = useState("https://mcp.clickup.com/mcp");
+  const [url, setUrl] = useState(
+    "https://mcp.clickup.com/mcp"
+  );
 
   const [token, setToken] = useState("");
 
@@ -15,19 +23,33 @@ export default function App() {
   );
 
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+  const [listingTools, setListingTools] = useState(false);
+  const [executing, setExecuting] = useState(false);
 
   const [connected, setConnected] = useState(false);
+
+  const [tools] = useState<
+    { name: string }[]
+  >([]);
+
+  const [selectedTool, setSelectedTool] =
+    useState("");
+
+  const [argumentsText, setArgumentsText] =
+    useState("{}");
+
 
   async function connect() {
     setLoading(true);
 
     try {
       const res = await fetch("/api/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
         },
-        body: JSON.stringify({
+        body:JSON.stringify({
           url,
           token,
         }),
@@ -37,75 +59,234 @@ export default function App() {
 
       setConnected(json.success);
 
-      setResponse(JSON.stringify(json, null, 2));
-    } catch (err: any) {
-      setConnected(false);
+      setResponse(
+        JSON.stringify(json,null,2)
+      );
 
+    } catch(err:any){
+
+      setConnected(false);
       setResponse(err.message);
+
     }
 
     setLoading(false);
   }
 
+
+  async function initialize(){
+
+    setInitializing(true);
+
+    try{
+
+      const res = await fetch(
+        "/api/initialize",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+          },
+          body:JSON.stringify({
+            url,
+            token,
+          }),
+        }
+      );
+
+
+      const json = await res.json();
+
+      setResponse(
+        JSON.stringify(json,null,2)
+      );
+
+    }catch(err:any){
+
+      setResponse(err.message);
+
+    }
+
+    setInitializing(false);
+
+  }
+
+
+  async function listTools(){
+
+    setListingTools(true);
+
+    try{
+
+      const res = await fetch(
+        "/api/tools/list",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+          },
+          body:JSON.stringify({
+            url,
+            token,
+          }),
+        }
+      );
+
+
+      const json = await res.json();
+
+
+      setResponse(
+        JSON.stringify(json,null,2)
+      );
+
+
+    }catch(err:any){
+
+      setResponse(err.message);
+
+    }
+
+
+    setListingTools(false);
+
+  }
+
+
+
+  async function executeTool(){
+
+    setExecuting(true);
+
+
+    let parsed={};
+
+
+    try{
+
+      parsed =
+        JSON.parse(argumentsText);
+
+    }catch{
+
+      setResponse(
+        "Invalid JSON arguments"
+      );
+
+      setExecuting(false);
+
+      return;
+
+    }
+
+
+    try{
+
+      const res = await fetch(
+        "/api/tools/call",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+          },
+          body:JSON.stringify({
+            url,
+            token,
+            name:selectedTool,
+            arguments:parsed,
+          }),
+        }
+      );
+
+
+      const json = await res.json();
+
+
+      setResponse(
+        JSON.stringify(json,null,2)
+      );
+
+
+    }catch(err:any){
+
+      setResponse(err.message);
+
+    }
+
+
+    setExecuting(false);
+
+  }
+
+
+
   return (
-    <div className="app">
-      <header className="header">
-        <h1>MCP Inspector</h1>
 
-        <p>ClickUp MCP Diagnostic Tool</p>
-      </header>
+    <div className="app-layout">
 
-      <ConnectionCard
-        url={url}
-        token={token}
-        loading={loading}
-        onUrlChange={setUrl}
-        onTokenChange={setToken}
-        onConnect={connect}
-      />
+      <Sidebar />
 
-      <Card title="Session">
-        <p>Status</p>
 
-        <strong>
-          {connected ? "Connected" : "Not Connected"}
-        </strong>
+      <main className="main">
 
-        <button disabled>
-          Initialize
-        </button>
-      </Card>
+        <Hero />
 
-      <Card title="Tools">
-        <button disabled>
-          List Tools
-        </button>
 
-        <p>No tools loaded.</p>
-      </Card>
+        <div className="dashboard-grid">
 
-      <Card title="Execute">
-        <label>Tool</label>
+          <ConnectionCard
+            url={url}
+            token={token}
+            loading={loading}
+            onUrlChange={setUrl}
+            onTokenChange={setToken}
+            onConnect={connect}
+          />
 
-        <select disabled>
-          <option>No tools</option>
-        </select>
 
-        <label>Arguments (JSON)</label>
+          <SessionCard
+            connected={connected}
+            loading={initializing}
+            onInitialize={initialize}
+          />
 
-        <textarea
-          rows={8}
-          defaultValue={"{}"}
-        />
 
-        <button disabled>
-          Execute
-        </button>
-      </Card>
+          <ToolsCard
+            enabled={connected}
+            loading={listingTools}
+            tools={tools}
+            selectedTool={selectedTool}
+            onSelectTool={setSelectedTool}
+            onListTools={listTools}
+          />
 
-      <Card title="Response">
-        <pre>{response}</pre>
-      </Card>
+        </div>
+
+
+
+        <div className="bottom-grid">
+
+          <ExecuteCard
+            enabled={connected}
+            loading={executing}
+            tool={selectedTool}
+            argumentsText={argumentsText}
+            onToolChange={setSelectedTool}
+            onArgumentsChange={setArgumentsText}
+            onExecute={executeTool}
+          />
+
+
+          <ResponseCard
+            response={response}
+          />
+
+        </div>
+
+
+      </main>
+
     </div>
+
   );
 }
