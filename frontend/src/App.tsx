@@ -1,12 +1,18 @@
 import { useState } from "react";
+
 import "./App.css";
+
 import Card from "./components/Card";
+import ConnectionCard from "./components/ConnectionCard";
 
 export default function App() {
   const [url, setUrl] = useState("https://mcp.clickup.com/mcp");
+
   const [token, setToken] = useState("");
 
-  const [response, setResponse] = useState("Waiting for requests...");
+  const [response, setResponse] = useState(
+    "Waiting for requests..."
+  );
 
   const [loading, setLoading] = useState(false);
 
@@ -49,30 +55,14 @@ export default function App() {
         <p>ClickUp MCP Diagnostic Tool</p>
       </header>
 
-      <Card title="Connection">
-        <label>Server URL</label>
-
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-
-        <label>Bearer Token</label>
-
-        <input
-          type="password"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Optional"
-        />
-
-        <button
-          onClick={connect}
-          disabled={loading}
-        >
-          {loading ? "Connecting..." : "Connect"}
-        </button>
-      </Card>
+      <ConnectionCard
+        url={url}
+        token={token}
+        loading={loading}
+        onUrlChange={setUrl}
+        onTokenChange={setToken}
+        onConnect={connect}
+      />
 
       <Card title="Session">
         <p>Status</p>
@@ -101,7 +91,7 @@ export default function App() {
           <option>No tools</option>
         </select>
 
-        <label>Arguments</label>
+        <label>Arguments (JSON)</label>
 
         <textarea
           rows={8}
