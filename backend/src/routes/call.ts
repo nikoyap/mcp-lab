@@ -1,64 +1,104 @@
 import { Router } from "express";
 import axios from "axios";
 
+import { getAccessToken } from "./oauth";
+
 const router = Router();
 
-router.post("/", async (req, res) => {
-  const { url, token, name, arguments: toolArguments } = req.body;
 
-  if (!url) {
-    return res.status(400).json({
-      success: false,
-      message: "Server URL is required",
+router.post("/", async (req,res)=>{
+
+  const {
+    url,
+    name,
+    arguments: args
+  } = req.body;
+
+
+  const token =
+    getAccessToken();
+
+
+  if(!token){
+
+    return res.status(401).json({
+      success:false,
+      error:"Not authenticated"
     });
+
   }
 
-  if (!name) {
-    return res.status(400).json({
-      success: false,
-      message: "Tool name is required",
-    });
-  }
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json, text/event-stream",
-  };
-
-  if (token?.trim()) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const requestBody = {
-    jsonrpc: "2.0",
-    id: 3,
-    method: "tools/call",
-    params: {
-      name,
-      arguments: toolArguments ?? {},
-    },
-  };
 
   try {
-    const response = await axios.post(url, requestBody, {
-      headers,
-      timeout: 15000,
-      validateStatus: () => true,
+
+    const response = await axios.post(
+      url,
+      {
+        jsonrpc:"2.0",
+
+        id:3,
+
+        method:"tools/call",
+
+        params:{
+          name,
+
+          arguments:
+            args || {}
+        }
+      },
+      {
+        headers:{
+          Authorization:
+            `Bearer ${token}`,
+
+          "Content-Type":
+            "application/json",
+
+          Accept:
+            "application/json, text-event-stream"
+        },
+
+        responseType:"text"
+      }
+    );
+
+
+    res.json({
+
+      success:true,
+
+      data:
+        response.data
+
     });
 
-    return res.json({
-      success: response.status >= 200 && response.status < 300,
-      httpStatus: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      body: response.data,
+
+  } catch(err:any){
+
+    console.error(
+      "tools/call failed:",
+      err.response?.data ||
+      err.message
+    );
+
+
+    res.status(
+      err.response?.status || 500
+    ).json({
+
+      success:false,
+
+      error:
+        err.response?.data ||
+        err.message
+
     });
-  } catch (error: any) {
-    return res.json({
-      success: false,
-      error: error.message,
-    });
+
   }
+
+
 });
+
 
 export default router;

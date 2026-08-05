@@ -1,61 +1,176 @@
 import { Router } from "express";
 import axios from "axios";
 
+import { getAccessToken } from "./oauth";
+
+import {
+  setSessionId,
+  setServerInfo
+} from "../services/mcpSession";
+
+
 const router = Router();
 
+
 router.post("/", async (req, res) => {
-  const { url, token } = req.body;
 
-  if (!url) {
-    return res.status(400).json({
-      success: false,
-      message: "Server URL is required",
+  const { url } = req.body;
+
+
+  const token =
+    getAccessToken();
+
+
+  if (!token) {
+
+    return res.status(401).json({
+      success:false,
+      error:
+        "Not authenticated. Please login with ClickUp first."
     });
+
   }
 
-  const requestBody = {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "initialize",
-    params: {
-      protocolVersion: "2025-06-18",
-      capabilities: {},
-      clientInfo: {
-        name: "MCP Inspector",
-        version: "1.0.0",
-      },
-    },
-  };
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json, text/event-stream",
-  };
-
-  if (token && token.trim() !== "") {
-    headers.Authorization = `Bearer ${token}`;
-  }
 
   try {
-    const response = await axios.post(url, requestBody, {
-      headers,
-      timeout: 15000,
-      validateStatus: () => true,
+
+    const response =
+      await axios.post(
+
+        url,
+
+        {
+          jsonrpc:"2.0",
+
+          id:1,
+
+          method:"initialize",
+
+          params:{
+
+            protocolVersion:
+              "2025-06-18",
+
+            capabilities:{},
+
+            clientInfo:{
+
+              name:
+                "MCP Inspector",
+
+              version:
+                "1.0.0"
+
+            }
+
+          }
+
+        },
+
+        {
+
+          headers:{
+
+            Authorization:
+              `Bearer ${token}`,
+
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json, text/event-stream"
+
+          },
+
+          responseType:"text"
+
+        }
+
+      );
+
+
+    const session =
+      response.headers[
+        "mcp-session-id"
+      ];
+
+
+    if(session){
+
+      setSessionId(session);
+
+    }
+
+
+    let parsed:any = null;
+
+
+    try {
+
+      parsed =
+        JSON.parse(
+          response.data
+        );
+
+    } catch {
+
+      parsed =
+        response.data;
+
+    }
+
+
+    if(
+      parsed?.result?.serverInfo
+    ){
+
+      setServerInfo(
+        parsed.result.serverInfo
+      );
+
+    }
+
+
+    res.json({
+
+      success:true,
+
+      sessionId:
+        session || null,
+
+      data:
+        parsed
+
     });
 
-    return res.json({
-      success: response.status >= 200 && response.status < 300,
-      httpStatus: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      body: response.data,
+
+  } catch(err:any){
+
+
+    console.error(
+      "Initialize failed:",
+      err.response?.data ||
+      err.message
+    );
+
+
+    res.status(
+      err.response?.status || 500
+    )
+    .json({
+
+      success:false,
+
+      error:
+        err.response?.data ||
+        err.message
+
     });
-  } catch (error: any) {
-    return res.json({
-      success: false,
-      error: error.message,
-    });
+
+
   }
+
 });
+
 
 export default router;
