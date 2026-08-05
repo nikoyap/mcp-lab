@@ -3,6 +3,7 @@ import Card from "./Card";
 
 type Tool = {
   name: string;
+
   description?: string;
 
   inputSchema?: {
@@ -14,13 +15,12 @@ type Tool = {
         enum?: string[];
       }
     >;
-
-    required?: string[];
   };
 };
 
 
 type Props = {
+
   tool?: Tool;
 
   argumentsText: string;
@@ -31,7 +31,9 @@ type Props = {
   loading:boolean;
 
   onExecute:()=>void;
+
 };
+
 
 
 export default function ToolRunner({
@@ -66,6 +68,55 @@ export default function ToolRunner({
   }
 
 
+
+  const properties =
+    tool.inputSchema?.properties || {};
+
+
+
+  let currentArgs:any = {};
+
+  try {
+
+    currentArgs =
+      JSON.parse(argumentsText);
+
+  } catch {
+
+    currentArgs = {};
+
+  }
+
+
+
+  function updateField(
+    key:string,
+    value:any
+  ){
+
+    const updated = {
+
+      ...currentArgs,
+
+      [key]:value
+
+    };
+
+
+    onArgumentsChange(
+
+      JSON.stringify(
+        updated,
+        null,
+        2
+      )
+
+    );
+
+  }
+
+
+
   return (
 
     <Card title="Tool Runner">
@@ -79,32 +130,161 @@ export default function ToolRunner({
       <p>
 
         {tool.description ||
-          "No description available"}
+        "No description"}
 
       </p>
 
 
-      <label>
-        Arguments JSON
-      </label>
+
+      <hr />
 
 
-      <textarea
 
-        rows={12}
+      {
+        Object.entries(properties)
+        .map(
+          ([key,field])=>(
 
-        value={
-          argumentsText
-        }
 
-        onChange={
-          e =>
-          onArgumentsChange(
-            e.target.value
-          )
-        }
+          <div
+            key={key}
+            style={{
+              marginBottom:"12px"
+            }}
+          >
 
-      />
+
+            <label>
+
+              {key}
+
+            </label>
+
+
+            {
+
+              field.enum ? (
+
+                <select
+
+                  value={
+                    currentArgs[key] || ""
+                  }
+
+                  onChange={
+                    e =>
+                    updateField(
+                      key,
+                      e.target.value
+                    )
+                  }
+
+                >
+
+                  <option value="">
+                    Select
+                  </option>
+
+
+                  {
+                    field.enum.map(
+                      option=>(
+
+                      <option
+                        key={option}
+                        value={option}
+                      >
+
+                        {option}
+
+                      </option>
+
+                    ))
+                  }
+
+
+                </select>
+
+
+              ) : (
+
+
+                <input
+
+                  type={
+                    field.type === "number"
+                    ? "number"
+                    : "text"
+                  }
+
+
+                  value={
+                    currentArgs[key] || ""
+                  }
+
+
+                  onChange={
+                    e =>
+                    updateField(
+                      key,
+                      field.type === "number"
+                      ? Number(e.target.value)
+                      : e.target.value
+                    )
+                  }
+
+
+                />
+
+
+              )
+
+            }
+
+
+            <small>
+
+              {field.description}
+
+            </small>
+
+
+          </div>
+
+
+        ))
+
+      }
+
+
+
+      <details>
+
+        <summary>
+          Raw JSON
+        </summary>
+
+
+        <textarea
+
+          rows={10}
+
+          value={
+            argumentsText
+          }
+
+          onChange={
+            e =>
+            onArgumentsChange(
+              e.target.value
+            )
+          }
+
+        />
+
+
+      </details>
+
 
 
       <button
@@ -122,6 +302,7 @@ export default function ToolRunner({
           ? "Executing..."
           : "Execute Tool"
         }
+
 
       </button>
 
