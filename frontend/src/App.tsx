@@ -11,139 +11,236 @@ import ToolsCard from "./components/ToolsCard";
 import ExecuteCard from "./components/ExecuteCard";
 import ResponseCard from "./components/ResponseCard";
 
+
+type Tool = {
+  name: string;
+  description?: string;
+};
+
+
 export default function App() {
+
   const [url, setUrl] = useState(
     "https://mcp.clickup.com/mcp"
   );
 
-  const [token, setToken] = useState("");
 
   const [response, setResponse] = useState(
     "Waiting for requests..."
   );
 
-  const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(false);
-  const [listingTools, setListingTools] = useState(false);
-  const [executing, setExecuting] = useState(false);
 
-  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [tools] = useState<
-    { name: string }[]
-  >([]);
+  const [initializing, setInitializing] =
+    useState(false);
+
+  const [listingTools, setListingTools] =
+    useState(false);
+
+  const [executing, setExecuting] =
+    useState(false);
+
+
+  const [connected, setConnected] =
+    useState(false);
+
+
+  const [tools, setTools] =
+    useState<Tool[]>([]);
+
 
   const [selectedTool, setSelectedTool] =
     useState("");
+
 
   const [argumentsText, setArgumentsText] =
     useState("{}");
 
 
+
   async function connect() {
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/test", {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-        },
-        body:JSON.stringify({
-          url,
-          token,
-        }),
-      });
 
-      const json = await res.json();
+      const res =
+        await fetch(
+          "/api/test",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json",
+            },
+            body:JSON.stringify({
+              url,
+            }),
+          }
+        );
 
-      setConnected(json.success);
+
+      const json =
+        await res.json();
+
+
+      setConnected(
+        json.success
+      );
+
 
       setResponse(
-        JSON.stringify(json,null,2)
+        JSON.stringify(
+          json,
+          null,
+          2
+        )
       );
+
 
     } catch(err:any){
 
       setConnected(false);
-      setResponse(err.message);
+
+      setResponse(
+        err.message
+      );
 
     }
 
+
     setLoading(false);
+
   }
+
+
 
 
   async function initialize(){
 
     setInitializing(true);
 
-    try{
 
-      const res = await fetch(
-        "/api/initialize",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-          },
-          body:JSON.stringify({
-            url,
-            token,
-          }),
-        }
+    try {
+
+      const res =
+        await fetch(
+          "/api/initialize",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json",
+            },
+            body:JSON.stringify({
+              url,
+            }),
+          }
+        );
+
+
+      const json =
+        await res.json();
+
+
+      setConnected(
+        json.success
       );
 
-
-      const json = await res.json();
 
       setResponse(
-        JSON.stringify(json,null,2)
+        JSON.stringify(
+          json,
+          null,
+          2
+        )
       );
 
-    }catch(err:any){
 
-      setResponse(err.message);
+    } catch(err:any){
+
+      setResponse(
+        err.message
+      );
 
     }
+
 
     setInitializing(false);
 
   }
 
 
+
+
   async function listTools(){
 
     setListingTools(true);
 
-    try{
 
-      const res = await fetch(
-        "/api/tools/list",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-          },
-          body:JSON.stringify({
-            url,
-            token,
-          }),
-        }
-      );
+    try {
+
+      const res =
+        await fetch(
+          "/api/tools/list",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json",
+            },
+            body:JSON.stringify({
+              url,
+            }),
+          }
+        );
 
 
-      const json = await res.json();
+      const json =
+        await res.json();
 
 
       setResponse(
-        JSON.stringify(json,null,2)
+        JSON.stringify(
+          json,
+          null,
+          2
+        )
       );
 
 
-    }catch(err:any){
+      console.log("FULL TOOL RESPONSE:", json);
 
-      setResponse(err.message);
+const discoveredTools =
+  json?.data?.result?.tools ||
+  json?.data?.tools ||
+  json?.result?.tools ||
+  json?.tools ||
+  [];
+
+console.log("DISCOVERED TOOLS:", discoveredTools);
+
+
+      setTools(
+        discoveredTools.map(
+          (tool:any)=>({
+            name:
+              tool.name,
+
+            description:
+              tool.description
+          })
+        )
+      );
+
+
+    } catch(err:any){
+
+      setResponse(
+        err.message
+      );
 
     }
 
@@ -154,20 +251,24 @@ export default function App() {
 
 
 
+
   async function executeTool(){
 
     setExecuting(true);
 
 
-    let parsed={};
+    let parsed = {};
 
 
-    try{
+    try {
 
       parsed =
-        JSON.parse(argumentsText);
+        JSON.parse(
+          argumentsText
+        );
 
-    }catch{
+
+    } catch {
 
       setResponse(
         "Invalid JSON arguments"
@@ -180,36 +281,51 @@ export default function App() {
     }
 
 
-    try{
 
-      const res = await fetch(
-        "/api/tools/call",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-          },
-          body:JSON.stringify({
-            url,
-            token,
-            name:selectedTool,
-            arguments:parsed,
-          }),
-        }
-      );
+    try {
+
+      const res =
+        await fetch(
+          "/api/tools/call",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json",
+            },
+            body:JSON.stringify({
+
+              url,
+
+              name:
+                selectedTool,
+
+              arguments:
+                parsed,
+
+            }),
+          }
+        );
 
 
-      const json = await res.json();
+      const json =
+        await res.json();
 
 
       setResponse(
-        JSON.stringify(json,null,2)
+        JSON.stringify(
+          json,
+          null,
+          2
+        )
       );
 
 
-    }catch(err:any){
+    } catch(err:any){
 
-      setResponse(err.message);
+      setResponse(
+        err.message
+      );
 
     }
 
@@ -224,41 +340,69 @@ export default function App() {
 
     <div className="app-layout">
 
+
       <Sidebar />
 
 
       <main className="main">
+
 
         <Hero />
 
 
         <div className="dashboard-grid">
 
+
           <ConnectionCard
+
             url={url}
-            token={token}
+
+            token=""
+
             loading={loading}
+
             onUrlChange={setUrl}
-            onTokenChange={setToken}
+
+            onTokenChange={()=>{}}
+
             onConnect={connect}
+
           />
+
 
 
           <SessionCard
+
             connected={connected}
+
             loading={initializing}
+
             onInitialize={initialize}
+
           />
+
 
 
           <ToolsCard
+
             enabled={connected}
+
             loading={listingTools}
+
             tools={tools}
+
             selectedTool={selectedTool}
-            onSelectTool={setSelectedTool}
-            onListTools={listTools}
+
+            onSelectTool={
+              setSelectedTool
+            }
+
+            onListTools={
+              listTools
+            }
+
           />
+
 
         </div>
 
@@ -266,27 +410,48 @@ export default function App() {
 
         <div className="bottom-grid">
 
+
           <ExecuteCard
+
             enabled={connected}
+
             loading={executing}
+
             tool={selectedTool}
+
             argumentsText={argumentsText}
-            onToolChange={setSelectedTool}
-            onArgumentsChange={setArgumentsText}
-            onExecute={executeTool}
+
+            onToolChange={
+              setSelectedTool
+            }
+
+            onArgumentsChange={
+              setArgumentsText
+            }
+
+            onExecute={
+              executeTool
+            }
+
           />
+
 
 
           <ResponseCard
+
             response={response}
+
           />
+
 
         </div>
 
 
       </main>
 
+
     </div>
 
   );
+
 }
