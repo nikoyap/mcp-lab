@@ -8,13 +8,28 @@ import Hero from "./components/Hero";
 import ConnectionCard from "./components/ConnectionCard";
 import SessionCard from "./components/SessionCard";
 import ToolsCard from "./components/ToolsCard";
-import ExecuteCard from "./components/ExecuteCard";
 import ResponseCard from "./components/ResponseCard";
-
+import ToolRunner from "./components/ToolRunner";
 
 type Tool = {
   name: string;
+
   description?: string;
+
+  inputSchema?: {
+    type?: string;
+
+    properties?: Record<
+      string,
+      {
+        type?: string;
+        description?: string;
+        enum?: string[];
+      }
+    >;
+
+    required?: string[];
+  };
 };
 
 
@@ -53,6 +68,12 @@ export default function App() {
 
   const [selectedTool, setSelectedTool] =
     useState("");
+
+const selectedToolData =
+  tools.find(
+    tool =>
+      tool.name === selectedTool
+  );
 
 
   const [argumentsText, setArgumentsText] =
@@ -223,17 +244,20 @@ const discoveredTools =
 console.log("DISCOVERED TOOLS:", discoveredTools);
 
 
-      setTools(
-        discoveredTools.map(
-          (tool:any)=>({
-            name:
-              tool.name,
+     setTools(
+  discoveredTools.map(
+    (tool:any)=>({
+      name:
+        tool.name,
 
-            description:
-              tool.description
-          })
-        )
-      );
+      description:
+        tool.description,
+
+      inputSchema:
+        tool.inputSchema
+    })
+  )
+);
 
 
     } catch(err:any){
@@ -411,29 +435,29 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
         <div className="bottom-grid">
 
 
-          <ExecuteCard
+          <ToolRunner
 
-            enabled={connected}
+  tool={
+    selectedToolData
+  }
 
-            loading={executing}
+  argumentsText={
+    argumentsText
+  }
 
-            tool={selectedTool}
+  onArgumentsChange={
+    setArgumentsText
+  }
 
-            argumentsText={argumentsText}
+  loading={
+    executing
+  }
 
-            onToolChange={
-              setSelectedTool
-            }
+  onExecute={
+    executeTool
+  }
 
-            onArgumentsChange={
-              setArgumentsText
-            }
-
-            onExecute={
-              executeTool
-            }
-
-          />
+/>
 
 
 
