@@ -1,120 +1,197 @@
+import {
+  useState
+} from "react";
+
 import Card from "./Card";
 
+
 type Tool = {
-  name: string;
-  description?: string;
+  name:string;
 };
+
 
 type Props = {
-  enabled: boolean;
-  loading: boolean;
-  tools: Tool[];
-  selectedTool: string;
-  onSelectTool: (value: string) => void;
-  onListTools: () => void;
+
+  enabled:boolean;
+
+  loading:boolean;
+
+  tools:Tool[];
+
+  selectedTool:string;
+
+  onSelectTool:
+    (value:string)=>void;
+
+  onListTools:
+    ()=>void;
+
 };
 
+
+
 export default function ToolsCard({
+
   enabled,
+
   loading,
+
   tools,
+
   selectedTool,
+
   onSelectTool,
-  onListTools,
-}: Props) {
+
+  onListTools
+
+}:Props){
+
+
+  const [
+    search,
+    setSearch
+  ] = useState("");
+
+
+
+  const filteredTools =
+    tools.filter(
+      tool =>
+        tool.name
+          .toLowerCase()
+          .includes(
+            search.toLowerCase()
+          )
+    );
+
+
 
   return (
-    <Card title="Tools Explorer">
+
+    <Card title="Tools">
+
 
       <button
-        onClick={onListTools}
-        disabled={!enabled || loading}
+
+        onClick={
+          onListTools
+        }
+
+        disabled={
+          !enabled ||
+          loading
+        }
+
       >
-        {loading
-          ? "Loading tools..."
-          : "Refresh Tools"}
+
+        {
+          loading
+          ? "Loading..."
+          : "List Tools"
+        }
+
       </button>
 
 
-      <div className="tool-summary">
 
-        <strong>
-          {tools.length}
-        </strong>
+      <label>
 
-        {" "}
-        Available Tools
+        Search Tools
 
-      </div>
+      </label>
+
+
+      <input
+
+        type="text"
+
+        placeholder="Search by keyword..."
+
+        value={
+          search
+        }
+
+        onChange={
+          e =>
+          setSearch(
+            e.target.value
+          )
+        }
+
+      />
+
+
+
+      <label>
+
+        Available Tools (
+        {
+          filteredTools.length
+        }
+        )
+
+      </label>
+
 
 
       <select
-        disabled={tools.length === 0}
-        value={selectedTool}
-        onChange={(e)=>
-          onSelectTool(e.target.value)
+
+        disabled={
+          filteredTools.length === 0
         }
+
+        value={
+          selectedTool
+        }
+
+        onChange={
+          e =>
+          onSelectTool(
+            e.target.value
+          )
+        }
+
       >
 
         <option value="">
+
           Select a tool
+
         </option>
 
 
-        {tools.map((tool)=>(
+        {
+          filteredTools.map(
+            tool => (
 
-          <option
-            key={tool.name}
-            value={tool.name}
-          >
-            {tool.name}
-          </option>
+              <option
 
-        ))}
+                key={
+                  tool.name
+                }
+
+                value={
+                  tool.name
+                }
+
+              >
+
+                {
+                  tool.name
+                }
+
+              </option>
+
+            )
+          )
+        }
+
 
       </select>
 
 
-      {tools.length > 0 && (
-
-  <div className="tool-list">
-
-    {tools.slice(0,10).map((tool)=>(
-
-      <div
-        key={tool.name}
-        className={
-          selectedTool === tool.name
-            ? "tool-item selected"
-            : "tool-item"
-        }
-
-        onClick={() =>
-          onSelectTool(tool.name)
-        }
-      >
-
-        🔧 {tool.name}
-
-      </div>
-
-    ))}
-
-
-    {tools.length > 10 && (
-
-      <div className="tool-more">
-
-        + {tools.length - 10} more tools
-
-      </div>
-
-    )}
-
-  </div>
-
-)}
-
     </Card>
+
   );
+
 }

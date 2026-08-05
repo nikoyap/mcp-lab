@@ -6,7 +6,74 @@ import { getAccessToken } from "./oauth";
 const router = Router();
 
 
-router.post("/", async (req,res)=>{
+function parseMcpResponse(raw: string) {
+
+  try {
+
+    const dataLine =
+      raw
+        .split("\n")
+        .find(
+          line =>
+            line.startsWith("data:")
+        );
+
+
+    if (!dataLine) {
+
+      return raw;
+
+    }
+
+
+    const json =
+
+      JSON.parse(
+        dataLine
+          .replace(
+            "data:",
+            ""
+          )
+          .trim()
+      );
+
+
+    const text =
+      json
+        ?.result
+        ?.content?.[0]
+        ?.text;
+
+
+    if (text) {
+
+      try {
+
+        return JSON.parse(text);
+
+      } catch {
+
+        return text;
+
+      }
+
+    }
+
+
+    return json;
+
+
+  } catch {
+
+    return raw;
+
+  }
+
+}
+
+
+
+router.post("/", async (req, res) => {
 
   const {
     url,
@@ -19,73 +86,136 @@ router.post("/", async (req,res)=>{
     getAccessToken();
 
 
-  if(!token){
+
+  if (!token) {
 
     return res.status(401).json({
+
       success:false,
-      error:"Not authenticated"
+
+      error:
+        "Not authenticated"
+
     });
 
   }
 
 
+
   try {
 
-    const response = await axios.post(
-      url,
-      {
-        jsonrpc:"2.0",
+    const start =
+      Date.now();
 
-        id:3,
 
-        method:"tools/call",
+    const response =
+      await axios.post(
 
-        params:{
-          name,
+        url,
 
-          arguments:
-            args || {}
-        }
-      },
-      {
-        headers:{
-          Authorization:
-            `Bearer ${token}`,
+        {
+          jsonrpc:"2.0",
 
-          "Content-Type":
-            "application/json",
+          id:3,
 
-          Accept:
-            "application/json, text-event-stream"
+          method:"tools/call",
+
+          params:{
+
+            name,
+
+            arguments:
+              args || {}
+
+          }
+
         },
 
-        responseType:"text"
-      }
+
+        {
+
+          headers:{
+
+            Authorization:
+              `Bearer ${token}`,
+
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json, text/event-stream"
+
+          },
+
+
+          responseType:
+            "text"
+
+        }
+
+      );
+
+
+
+    const parsed =
+      parseMcpResponse(
+        response.data
+      );
+
+
+
+    console.log(
+      "tools/call latency:",
+      Date.now() - start,
+      "ms"
     );
+
 
 
     res.json({
 
-      success:true,
+  success:true,
 
-      data:
-        response.data
+  headers: {
 
-    });
+    limit:
+      response.headers["ratelimit-limit"] || null,
+
+    remaining:
+      response.headers["ratelimit-remaining"] || null,
+
+    reset:
+      response.headers["ratelimit-reset"] || null
+
+  },
+
+  data:
+    response.data
+
+});
+
 
 
   } catch(err:any){
 
+
     console.error(
+
       "tools/call failed:",
+
       err.response?.data ||
       err.message
+
     );
 
 
+
     res.status(
+
       err.response?.status || 500
-    ).json({
+
+    )
+    .json({
 
       success:false,
 
@@ -94,6 +224,7 @@ router.post("/", async (req,res)=>{
         err.message
 
     });
+
 
   }
 

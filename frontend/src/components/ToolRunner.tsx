@@ -127,12 +127,14 @@ export default function ToolRunner({
       </h3>
 
 
-      <p>
+   <p className="tool-description">
 
-        {tool.description ||
-        "No description"}
+  {
+    tool.description ||
+    "No description"
+  }
 
-      </p>
+</p>
 
 
 

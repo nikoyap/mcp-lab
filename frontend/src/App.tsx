@@ -10,82 +10,121 @@ import SessionCard from "./components/SessionCard";
 import ToolsCard from "./components/ToolsCard";
 import ResponseCard from "./components/ResponseCard";
 import ToolRunner from "./components/ToolRunner";
+import RateLimitCard from "./components/RateLimitCard";
+
 
 type Tool = {
   name: string;
-
   description?: string;
-
-  inputSchema?: {
-    type?: string;
-
-    properties?: Record<
-      string,
-      {
-        type?: string;
-        description?: string;
-        enum?: string[];
-      }
-    >;
-
-    required?: string[];
-  };
+  inputSchema?: any;
 };
+
 
 
 export default function App() {
 
-  const [url, setUrl] = useState(
-    "https://mcp.clickup.com/mcp"
-  );
+
+  const [url,setUrl] =
+    useState(
+      "https://mcp.clickup.com/mcp"
+    );
 
 
-  const [response, setResponse] = useState(
-    "Waiting for requests..."
-  );
+  const [response,setResponse] =
+    useState(
+      "Waiting for requests..."
+    );
 
 
-  const [loading, setLoading] =
+  const [loading,setLoading] =
     useState(false);
 
-  const [initializing, setInitializing] =
+  const [initializing,setInitializing] =
     useState(false);
 
-  const [listingTools, setListingTools] =
+  const [listingTools,setListingTools] =
     useState(false);
 
-  const [executing, setExecuting] =
-    useState(false);
-
-
-  const [connected, setConnected] =
+  const [executing,setExecuting] =
     useState(false);
 
 
-  const [tools, setTools] =
+
+  const [connected,setConnected] =
+    useState(false);
+
+
+
+  const [tools,setTools] =
     useState<Tool[]>([]);
 
 
-  const [selectedTool, setSelectedTool] =
+
+  const [selectedTool,setSelectedTool] =
     useState("");
 
-const selectedToolData =
-  tools.find(
-    tool =>
-      tool.name === selectedTool
-  );
 
 
-  const [argumentsText, setArgumentsText] =
+  const selectedToolData =
+    tools.find(
+      tool =>
+        tool.name === selectedTool
+    );
+
+
+
+  const [argumentsText,setArgumentsText] =
     useState("{}");
 
 
 
-  async function connect() {
+  const [rateLimit,setRateLimit] =
+    useState({
+
+      limit:null as string | null,
+
+      remaining:null as string | null,
+
+      reset:null as string | null
+
+    });
+
+
+
+
+
+  function updateRateLimit(json:any){
+
+    if(json?.headers){
+
+      setRateLimit({
+
+        limit:
+          json.headers.limit || null,
+
+        remaining:
+          json.headers.remaining || null,
+
+        reset:
+          json.headers.reset || null
+
+      });
+
+    }
+
+  }
+
+
+
+
+
+
+  async function connect(){
 
     setLoading(true);
 
-    try {
+
+    try{
 
       const res =
         await fetch(
@@ -94,11 +133,11 @@ const selectedToolData =
             method:"POST",
             headers:{
               "Content-Type":
-                "application/json",
+                "application/json"
             },
             body:JSON.stringify({
-              url,
-            }),
+              url
+            })
           }
         );
 
@@ -112,6 +151,9 @@ const selectedToolData =
       );
 
 
+      updateRateLimit(json);
+
+
       setResponse(
         JSON.stringify(
           json,
@@ -121,9 +163,7 @@ const selectedToolData =
       );
 
 
-    } catch(err:any){
-
-      setConnected(false);
+    }catch(err:any){
 
       setResponse(
         err.message
@@ -139,12 +179,15 @@ const selectedToolData =
 
 
 
+
+
+
   async function initialize(){
 
     setInitializing(true);
 
 
-    try {
+    try{
 
       const res =
         await fetch(
@@ -153,11 +196,11 @@ const selectedToolData =
             method:"POST",
             headers:{
               "Content-Type":
-                "application/json",
+                "application/json"
             },
             body:JSON.stringify({
-              url,
-            }),
+              url
+            })
           }
         );
 
@@ -171,6 +214,9 @@ const selectedToolData =
       );
 
 
+      updateRateLimit(json);
+
+
       setResponse(
         JSON.stringify(
           json,
@@ -180,7 +226,7 @@ const selectedToolData =
       );
 
 
-    } catch(err:any){
+    }catch(err:any){
 
       setResponse(
         err.message
@@ -196,12 +242,17 @@ const selectedToolData =
 
 
 
+
+
+
+
   async function listTools(){
 
     setListingTools(true);
 
 
-    try {
+    try{
+
 
       const res =
         await fetch(
@@ -210,17 +261,110 @@ const selectedToolData =
             method:"POST",
             headers:{
               "Content-Type":
-                "application/json",
+                "application/json"
             },
             body:JSON.stringify({
-              url,
-            }),
+              url
+            })
           }
         );
 
 
+
       const json =
         await res.json();
+
+
+
+      console.log(
+        "FULL TOOL RESPONSE:",
+        json
+      );
+
+
+
+      updateRateLimit(json);
+
+
+
+      let discoveredTools:any[] = [];
+
+
+
+      if(
+        typeof json.data === "string"
+      ){
+
+
+        const line =
+          json.data
+            .split("\n")
+            .find(
+              (item:string)=>
+                item.startsWith("data:")
+            );
+
+
+
+        if(line){
+
+
+          const parsed =
+            JSON.parse(
+              line
+                .replace(
+                  "data:",
+                  ""
+                )
+                .trim()
+            );
+
+
+          discoveredTools =
+            parsed?.result?.tools || [];
+
+        }
+
+
+      }
+      else {
+
+
+        discoveredTools =
+          json?.data?.result?.tools ||
+          json?.data?.tools ||
+          [];
+
+      }
+
+
+
+      console.log(
+        "DISCOVERED TOOLS:",
+        discoveredTools
+      );
+
+
+
+      setTools(
+
+        discoveredTools.map(
+          (tool:any)=>({
+
+            name:
+              tool.name,
+
+            description:
+              tool.description,
+
+            inputSchema:
+              tool.inputSchema
+
+          })
+        )
+
+      );
+
 
 
       setResponse(
@@ -232,35 +376,8 @@ const selectedToolData =
       );
 
 
-      console.log("FULL TOOL RESPONSE:", json);
 
-const discoveredTools =
-  json?.data?.result?.tools ||
-  json?.data?.tools ||
-  json?.result?.tools ||
-  json?.tools ||
-  [];
-
-console.log("DISCOVERED TOOLS:", discoveredTools);
-
-
-     setTools(
-  discoveredTools.map(
-    (tool:any)=>({
-      name:
-        tool.name,
-
-      description:
-        tool.description,
-
-      inputSchema:
-        tool.inputSchema
-    })
-  )
-);
-
-
-    } catch(err:any){
+    }catch(err:any){
 
       setResponse(
         err.message
@@ -276,23 +393,29 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
 
 
 
+
+
+
+
   async function executeTool(){
+
 
     setExecuting(true);
 
 
-    let parsed = {};
+
+    let parsed:any = {};
 
 
-    try {
+
+    try{
 
       parsed =
         JSON.parse(
           argumentsText
         );
 
-
-    } catch {
+    }catch{
 
       setResponse(
         "Invalid JSON arguments"
@@ -306,7 +429,9 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
 
 
 
-    try {
+
+    try{
+
 
       const res =
         await fetch(
@@ -315,25 +440,29 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
             method:"POST",
             headers:{
               "Content-Type":
-                "application/json",
+                "application/json"
             },
             body:JSON.stringify({
 
               url,
 
-              name:
-                selectedTool,
+              name:selectedTool,
 
-              arguments:
-                parsed,
+              arguments:parsed
 
-            }),
+            })
           }
         );
 
 
+
       const json =
         await res.json();
+
+
+
+      updateRateLimit(json);
+
 
 
       setResponse(
@@ -345,7 +474,8 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
       );
 
 
-    } catch(err:any){
+
+    }catch(err:any){
 
       setResponse(
         err.message
@@ -357,6 +487,10 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
     setExecuting(false);
 
   }
+
+
+
+
 
 
 
@@ -372,6 +506,7 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
 
 
         <Hero />
+
 
 
         <div className="dashboard-grid">
@@ -432,43 +567,66 @@ console.log("DISCOVERED TOOLS:", discoveredTools);
 
 
 
+
+
         <div className="bottom-grid">
 
 
           <ToolRunner
 
-  tool={
-    selectedToolData
-  }
+            tool={
+              selectedToolData
+            }
 
-  argumentsText={
-    argumentsText
-  }
+            argumentsText={
+              argumentsText
+            }
 
-  onArgumentsChange={
-    setArgumentsText
-  }
+            onArgumentsChange={
+              setArgumentsText
+            }
 
-  loading={
-    executing
-  }
+            loading={
+              executing
+            }
 
-  onExecute={
-    executeTool
-  }
+            onExecute={
+              executeTool
+            }
 
-/>
+          />
 
 
 
           <ResponseCard
 
-            response={response}
+            response={
+              response
+            }
+
+          />
+
+
+
+          <RateLimitCard
+
+            limit={
+              rateLimit.limit
+            }
+
+            remaining={
+              rateLimit.remaining
+            }
+
+            reset={
+              rateLimit.reset
+            }
 
           />
 
 
         </div>
+
 
 
       </main>

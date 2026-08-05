@@ -7,6 +7,10 @@ import {
   getSessionId
 } from "../services/mcpSession";
 
+import {
+  addActivity
+} from "../services/activity";
+
 
 const router = Router();
 
@@ -35,6 +39,10 @@ router.post("/", async (req, res) => {
 
 
   try {
+
+    const start =
+      Date.now();
+
 
     const response =
       await axios.post(
@@ -83,64 +91,116 @@ router.post("/", async (req, res) => {
     let data:any;
 
 
-try {
+    try {
 
-  let raw =
-    response.data;
-
-
-  // Handle MCP SSE response
-  if (
-    typeof raw === "string" &&
-    raw.includes("data:")
-  ) {
-
-    const jsonLine =
-      raw
-        .split("\n")
-        .find(
-          (line:string) =>
-            line.startsWith("data:")
-        );
+      let raw =
+        response.data;
 
 
-    if (jsonLine) {
+      // Parse MCP SSE response
+      if (
+        typeof raw === "string" &&
+        raw.includes("data:")
+      ) {
 
-      raw =
-        jsonLine.replace(
-          "data:",
-          ""
-        ).trim();
+        const jsonLine =
+          raw
+            .split("\n")
+            .find(
+              (line:string) =>
+                line.startsWith("data:")
+            );
+
+
+        if(jsonLine){
+
+          raw =
+            jsonLine
+              .replace(
+                "data:",
+                ""
+              )
+              .trim();
+
+        }
+
+      }
+
+
+      data =
+        JSON.parse(raw);
+
+
+    } catch {
+
+      data =
+        response.data;
 
     }
 
-  }
 
+    // Record activity
+    addActivity({
 
-  data =
-    JSON.parse(raw);
+      method:
+        "tools/list",
 
+      status:
+        response.status,
 
-} catch {
+      latency:
+        Date.now() - start,
 
-  data =
-    response.data;
-
-}
-
-
-    res.json({
-
-      success:true,
-
-      sessionId,
-
-      data
+      timestamp:
+        new Date().toISOString()
 
     });
 
 
+    res.json({
+
+  success:true,
+
+  headers: {
+
+    limit:
+      response.headers["ratelimit-limit"] || null,
+
+    remaining:
+      response.headers["ratelimit-remaining"] || null,
+
+    reset:
+      response.headers["ratelimit-reset"] || null
+
+  },
+
+  data:
+    response.data
+
+});
+
+
   } catch(err:any){
+
+
+    addActivity({
+
+      method:
+        "tools/list",
+
+      status:
+        err.response?.status || 500,
+
+      latency:
+        0,
+
+      timestamp:
+        new Date().toISOString(),
+
+      error:
+        err.message
+
+    });
 
 
     console.error(

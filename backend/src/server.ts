@@ -9,6 +9,9 @@ import discoveryRoute from "./routes/discovery";
 import callRoute from "./routes/call";
 import oauthRoute from "./routes/oauth";
 import initializedRoute from "./routes/initialized";
+import activityRoute from "./routes/activity";
+
+
 
 const app = express();
 
@@ -22,6 +25,12 @@ const PORT =
 
 
 // Routes
+app.use(
+  "/api/activity",
+  activityRoute
+);
+
+
 app.use(
  "/api/initialized",
  initializedRoute

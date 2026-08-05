@@ -36,6 +36,15 @@ export default function ConnectionCard({
         placeholder="Optional"
       />
 
+<button
+  onClick={() => {
+    window.location.href =
+      "/api/oauth/login";
+  }}
+>
+  🔐 Authenticate ClickUp Workspace
+</button>
+
       <button
         onClick={onConnect}
         disabled={loading}
