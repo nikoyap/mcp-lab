@@ -14,11 +14,13 @@ export default function Sidebar() {
 
       <nav className="sidebar-nav">
         <a className="active">Dashboard</a>
+{/*
         <a>Connection</a>
         <a>Tools</a>
         <a>Execute</a>
         <a>History</a>
         <a>Settings</a>
+*/}
       </nav>
 
       <div className="system-card">

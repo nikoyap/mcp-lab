@@ -2,46 +2,45 @@ import { Router } from "express";
 import axios from "axios";
 
 import { getAccessToken } from "./oauth";
-
-import {
-  getSessionId
-} from "../services/mcpSession";
-
-import {
-  addActivity
-} from "../services/activity";
+import { parseMcpResponse } from "../services/mcpResponse";
 
 
 const router = Router();
 
 
-router.post("/", async (req, res) => {
 
-  const { url } = req.body;
+router.post("/", async (req,res)=>{
+
+
+  const {
+    url
+  } = req.body;
+
 
 
   const token =
     getAccessToken();
 
 
-  const sessionId =
-    getSessionId();
 
 
-  if (!token) {
+  if(!token){
 
     return res.status(401).json({
-      success: false,
-      error: "Not authenticated"
+
+      success:false,
+
+      error:"Not authenticated"
+
     });
 
   }
 
 
-  try {
 
-    const start =
-      Date.now();
+
+
+  try {
 
 
     const response =
@@ -50,19 +49,20 @@ router.post("/", async (req, res) => {
         url,
 
         {
-          jsonrpc: "2.0",
 
-          id: 2,
+          jsonrpc:"2.0",
 
-          method: "tools/list",
+          id:2,
 
-          params: {}
+          method:"tools/list",
+
+          params:{}
 
         },
 
         {
 
-          headers: {
+          headers:{
 
             Authorization:
               `Bearer ${token}`,
@@ -71,161 +71,109 @@ router.post("/", async (req, res) => {
               "application/json",
 
             Accept:
-              "application/json, text/event-stream",
-
-            ...(sessionId && {
-              "mcp-session-id":
-                sessionId
-            })
+              "application/json, text/event-stream"
 
           },
 
-          responseType:
-            "text"
+
+          responseType:"text"
 
         }
 
       );
 
 
-    let data:any;
 
 
-    try {
 
-      let raw =
-        response.data;
-
-
-      // Parse MCP SSE response
-      if (
-        typeof raw === "string" &&
-        raw.includes("data:")
-      ) {
-
-        const jsonLine =
-          raw
-            .split("\n")
-            .find(
-              (line:string) =>
-                line.startsWith("data:")
-            );
+    const formattedData =
+      parseMcpResponse(
+        response.data
+      );
 
 
-        if(jsonLine){
 
-          raw =
-            jsonLine
-              .replace(
-                "data:",
-                ""
-              )
-              .trim();
-
-        }
-
-      }
-
-
-      data =
-        JSON.parse(raw);
-
-
-    } catch {
-
-      data =
-        response.data;
-
-    }
-
-
-    // Record activity
-    addActivity({
-
-      method:
-        "tools/list",
-
-      status:
-        response.status,
-
-      latency:
-        Date.now() - start,
-
-      timestamp:
-        new Date().toISOString()
-
-    });
 
 
     res.json({
 
-  success:true,
-
-  headers: {
-
-    limit:
-      response.headers["ratelimit-limit"] || null,
-
-    remaining:
-      response.headers["ratelimit-remaining"] || null,
-
-    reset:
-      response.headers["ratelimit-reset"] || null
-
-  },
-
-  data:
-    response.data
-
-});
+      success:true,
 
 
-  } catch(err:any){
+      headers:{
+
+        limit:
+          response.headers["ratelimit-limit"]
+          || null,
 
 
-    addActivity({
+        remaining:
+          response.headers["ratelimit-remaining"]
+          || null,
 
-      method:
-        "tools/list",
 
-      status:
-        err.response?.status || 500,
+        reset:
+          response.headers["ratelimit-reset"]
+          || null
 
-      latency:
-        0,
+      },
 
-      timestamp:
-        new Date().toISOString(),
 
-      error:
-        err.message
+
+      data:
+        formattedData,
+
+
+
+      raw:
+        response.data
+
 
     });
+
+
+
+
+
+  }
+  catch(err:any){
 
 
     console.error(
+
       "tools/list failed:",
+
       err.response?.data ||
       err.message
+
     );
 
 
+
     res.status(
-      err.response?.status || 500
-    )
-    .json({
+
+      err.response?.status ||
+      500
+
+    ).json({
 
       success:false,
 
+
       error:
+
         err.response?.data ||
         err.message
 
+
     });
+
 
   }
 
+
 });
+
 
 
 export default router;
