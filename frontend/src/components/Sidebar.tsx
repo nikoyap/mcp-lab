@@ -23,6 +23,22 @@ export default function Sidebar() {
 */}
       </nav>
 
+<div className="instruction-card">
+
+  <h3>
+    How to Use
+  </h3>
+
+  <ol>
+    <li>Authenticate ClickUp Workspace</li>
+    <li>Click Connect</li>
+<li>Click List Tool</li>
+    <li>Select a Tool</li>
+    <li>Run and review response</li>
+  </ol>
+
+</div>
+
       <div className="system-card">
         <div className="status-dot" />
 
